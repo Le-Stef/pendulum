@@ -58,9 +58,6 @@ Le FTDI-232 permet l'interconnexion du NEO-7M sur un PC via USB
 Voici le montage complet avec le détail du câblage
 ![Montage complet](images/ft232rl_neo-7m_pc.webp)
 
-Et voici le FTDI-232 qui permet l'interconnexion du NEO-7M sur un PC en USB
-![FTDI FT232RL](images/ftdi-ft232rl.webp)
-
 ### Interface Web de monitoring
 ![Interface web](images/interface-web-1.webp)
 ![Skyplot](images/interface-web-2.webp)
