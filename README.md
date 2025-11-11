@@ -50,7 +50,7 @@ L'antenne GPS doit être positionnée avec une vue dégagée du ciel (fenêtre, 
 
 ### Montage électronique
 Exemple, on a ici un module GPS NEO-7M de chez KeyeStudio
-![NEO-7M](images/gps-neo-7m.webp)
+![NEO-7M](images/ublox-neo-7m.webp)
 
 Le FTDI-232 permet l'interconnexion du NEO-7M sur un PC via USB
 ![FTDI FT232RL](images/ftdi-ft232rl.webp)
