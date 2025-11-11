@@ -2,8 +2,8 @@
 
 **Un serveur NTP professionnel avec synchronisation GPS/GNSS en Rust**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Rust](https://img.shields.io/badge/Rust-1.70+-orange?logo=rust)](https://rust-lang.org/fr/)
 
 ## Description
 
@@ -488,9 +488,13 @@ Résultats typiques sur Raspberry Pi 4 avec GPS NEO-7M :
 - **CPU** : < 1% en idle, ~15% à 10k req/s
 - **Précision** : < 1 ms avec PPS via CTS
 
+## Auteur
+
+- Le-Stef
+
 ## Licence
 
-Ce projet est distribué sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+Licence Apache 2.0 - voir le fichier [LICENSE](LICENSE) pour plus de détails
 
 ## Ressources
 
