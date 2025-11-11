@@ -44,6 +44,7 @@ USB vers PC       /    USB vers PC
 GND               →    GND
 TXD               →    RX
 PPS               →    CTS (optionnel, mais beaucoup plus précis)
+```
 
 L'antenne GPS doit être positionnée avec une vue dégagée du ciel (fenêtre, toit) afin qu'elle puisse recevoir les signaux satellites.
 
