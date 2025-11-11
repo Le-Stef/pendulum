@@ -1,6 +1,8 @@
 # Pendulum
 
-Serveur NTP professionnel avec synchronisation GPS/GNSS en Rust
+**Un serveur NTP professionnel avec synchronisation GPS/GNSS en Rust**
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 
 ## Description
 
