@@ -66,8 +66,8 @@ Voici le montage complet avec le détail du câblage
 
 ### Prérequis
 
-- Rust 1.70 ou supérieur : https://rustup.rs/
-- Droits administrateur (nécessaire pour le port NTP 123)
+- Rust 1.70 ou supérieur : https://rust-lang.org/fr/tools/install/
+- Droits administrateur : nécessaires pour utiliser le port NTP 123
 
 ### Compilation
 
