@@ -398,7 +398,6 @@ pendulum/
 │   └── web_server.rs     # Serveur web et API WebSocket
 ├── web/
 │   └── index.html        # Interface web de monitoring
-├── doc/                  # Documentation détaillée
 ├── config.toml           # Configuration (généré automatiquement)
 └── Cargo.toml            # Dépendances Rust
 ```
@@ -428,9 +427,6 @@ GpsReader (thread séparé)
 - **Reconnexion automatique** : Exponential backoff (5s → 60s)
 - **Fallback intelligent** : Utilise l'horloge système si GPS indisponible
 - **Aucun panic** : Toutes les erreurs gérées avec Result<T, E>
-- **Endianness correct** : Conversion big-endian conforme RFC 5905
-- **Timestamps distincts** : Receive et Transmit capturés aux moments exacts
-- **Lock-free dans hot path** : RwLock uniquement pour mises à jour rares
 
 ### Précision attendue
 
@@ -440,12 +436,6 @@ GpsReader (thread séparé)
 | GPS sans PPS | 10-50 ms | 1 |
 | GPS + PPS via CTS | < 1 ms | 1 |
 | GPS + PPS kernel Linux | < 10 µs | 1 |
-
-## Documentation complémentaire
-
-- **GPS_INTEGRATION.md** : Guide détaillé pour l'intégration GPS/GNSS matérielle
-- **GPS_USAGE.md** : Guide d'utilisation quotidien du module GPS
-- **INTEGRATION_SUMMARY.md** : Résumé technique de l'intégration GPS
 
 ## Déploiement en production
 
@@ -485,21 +475,6 @@ sudo systemctl start pendulum
 sudo systemctl status pendulum
 ```
 
-### Docker
-
-```dockerfile
-FROM rust:1.75-slim as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y libssl3 ca-certificates
-COPY --from=builder /app/target/release/pendulum /usr/local/bin/
-EXPOSE 123/udp 8080/tcp
-CMD ["pendulum", "/etc/pendulum/config.toml"]
-```
-
 ## Performance
 
 Résultats typiques sur Raspberry Pi 4 avec GPS NEO-7M :
@@ -513,20 +488,6 @@ Résultats typiques sur Raspberry Pi 4 avec GPS NEO-7M :
 ## Licence
 
 Ce projet est distribué sous licence MIT. Voir le fichier LICENSE pour plus de détails.
-
-## Contributions
-
-Les contributions sont les bienvenues. Pour les changements majeurs, veuillez d'abord ouvrir une issue pour discuter des modifications proposées.
-
-## Auteur
-
-Développé avec passion pour la précision temporelle.
-
-## Remerciements
-
-- Projet inspiré par les serveurs NTP classiques (ntpd, chrony)
-- Documentation GPS basée sur les spécifications u-blox et NMEA 0183
-- Interface web inspirée des dashboards modernes de monitoring
 
 ## Ressources
 
