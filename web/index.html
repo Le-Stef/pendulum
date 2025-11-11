@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum - Serveur NTP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+             background: linear-gradient(135deg, #333333 0%, #cfcfcf 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .clock-display {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .time {
+            font-size: 4em;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .date {
+            font-size: 1.5em;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        .milliseconds {
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .status-label {
+            font-size: 1em;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .led {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+            transition: all 0.3s ease;
+        }
+
+        .led.active {
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        .led.inactive {
+            background: #555;
+            box-shadow: none;
+        }
+
+        .led.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 15px #ffaa00;
+        }
+
+        .led.error {
+            background: #ff0000;
+            box-shadow: 0 0 15px #ff0000;
+        }
+
+        .blink {
+            animation: blink 0.2s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .stat-value {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .signal-bars {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 20px;
+        }
+
+        .bar {
+            width: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            transition: background 0.3s ease;
+        }
+
+        .bar.active {
+            background: #00ff00;
+        }
+
+        .bar:nth-child(1) { height: 6px; }
+        .bar:nth-child(2) { height: 10px; }
+        .bar:nth-child(3) { height: 14px; }
+        .bar:nth-child(4) { height: 18px; }
+        .bar:nth-child(5) { height: 22px; }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status">
+        <div class="led" id="ws-led"></div>
+        <span id="ws-status">Connexion...</span>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Pendulum Serveur NTP</h1>
+            <div class="subtitle">Serveur NTP avec GPS/GNSS</div>
+        </header>
+
+        <div class="clock-display">
+            <div class="time" id="time">--:--:--</div>
+            <div class="date" id="date">---- -- ----</div>
+            <div class="milliseconds" id="milliseconds">---,--- ms</div>
+        </div>
+
+        <div class="dashboard">
+            <!-- Carte Horloge -->
+            <div class="card">
+                <h2>Horloge NTP</h2>
+                <div class="status-row">
+                    <span class="status-label">Stratum</span>
+                    <span class="stat-value" id="stratum">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Référence</span>
+                    <span class="stat-value" id="reference">----</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Précision</span>
+                    <span class="stat-value" id="precision">--</span>
+                </div>
+            </div>
+
+            <!-- Carte GPS -->
+            <div class="card">
+                <h2>GPS/GNSS</h2>
+                <div class="status-row">
+                    <span class="status-label">État GPS</span>
+                    <div class="indicator">
+                        <div class="led inactive" id="gps-led"></div>
+                        <span id="gps-status">Déconnecté</span>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Satellites</span>
+                    <span class="stat-value" id="satellites">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Signal</span>
+                    <div class="signal-bars" id="signal-bars">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Offset PPS</span>
+                    <span class="stat-value" id="pps-offset">--</span>
+                </div>
+            </div>
+
+            <!-- Carte Signaux -->
+            <div class="card">
+                <h2>Signaux</h2>
+                <div class="status-row">
+                    <span class="status-label">USB RX</span>
+                    <div class="indicator">
+                        <div class="led inactive" id="rx-led"></div>
+                        <span id="rx-status">--</span>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">USB TX</span>
+                    <div class="indicator">
+                        <div class="led inactive" id="tx-led"></div>
+                        <span id="tx-status">--</span>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">PPS</span>
+                    <div class="indicator">
+                        <div class="led inactive" id="pps-led"></div>
+                        <span id="pps-status">Inactif</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte Statistiques -->
+            <div class="card">
+                <h2>Statistiques</h2>
+                <div class="status-row">
+                    <span class="status-label">Requêtes NTP</span>
+                    <span class="stat-value" id="ntp-requests">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Requêtes/sec</span>
+                    <span class="stat-value" id="ntp-rate">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Trames NMEA</span>
+                    <span class="stat-value" id="nmea-count">0</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Pulses PPS</span>
+                    <span class="stat-value" id="pps-count">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte Skyplot -->
+        <div class="card" style="max-width: 600px; margin: 30px auto;">
+            <h2>Skyplot - Vue du Ciel</h2>
+            <div style="position: relative; width: 100%; padding-top: 100%;">
+                <canvas id="skyplot" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+            </div>
+            <div style="margin-top: 15px; text-align: center; font-size: 0.85em; opacity: 0.8;">
+                <span style="display: inline-block; margin: 0 10px;">🟢 SNR > 30 dB</span>
+                <span style="display: inline-block; margin: 0 10px;">🟡 SNR 20-30 dB</span>
+                <span style="display: inline-block; margin: 0 10px;">🔴 SNR < 20 dB</span>
+                <span style="display: inline-block; margin: 0 10px;">⚪ Pas de signal</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>Pendulum Serveur NTP v0.1 - Serveur de temps professionnel avec GPS/GNSS</p>
+        </footer>
+    </div>
+
+    <script>
+        let ws = null;
+        let lastRxTime = 0;
+        let lastTxTime = 0;
+
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.host}/ws`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connecté');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateDisplay(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket erreur:', error);
+                updateConnectionStatus(false);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket déconnecté, reconnexion dans 3s...');
+                updateConnectionStatus(false);
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const led = document.getElementById('ws-led');
+            const status = document.getElementById('ws-status');
+
+            if (connected) {
+                led.className = 'led active';
+                status.textContent = 'Connecté';
+            } else {
+                led.className = 'led error';
+                status.textContent = 'Déconnecté';
+            }
+        }
+
+        function updateDisplay(data) {
+            // Mise à jour de l'horloge
+            const date = new Date(data.unix_timestamp_ms);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const millis = String(date.getMilliseconds()).padStart(3, '0');
+            const micros = String(Math.floor((data.nanos % 1000000) / 1000)).padStart(3, '0');
+
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('date').textContent = date.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('milliseconds').textContent = `${millis},${micros} ms`;
+
+            // Mise à jour des informations horloge
+            document.getElementById('stratum').textContent = data.stats.clock.stratum;
+            document.getElementById('reference').textContent = data.stats.clock.reference_id;
+            const precisionUs = Math.pow(2, data.stats.clock.precision) * 1_000_000;
+            document.getElementById('precision').textContent = `~${precisionUs.toFixed(1)} µs`;
+
+            // Mise à jour GPS
+            const gpsConnected = data.stats.gps.connected;
+            const gpsLed = document.getElementById('gps-led');
+            if (gpsConnected) {
+                gpsLed.className = 'led active';
+                document.getElementById('gps-status').textContent = 'Synchronisé';
+            } else {
+                gpsLed.className = 'led inactive';
+                document.getElementById('gps-status').textContent = 'Déconnecté';
+            }
+
+            document.getElementById('satellites').textContent = data.stats.gps.satellites;
+
+            // Barres de signal
+            const signalQuality = data.stats.gps.signal_quality;
+            const bars = document.querySelectorAll('.signal-bars .bar');
+            bars.forEach((bar, index) => {
+                if (index < signalQuality) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+
+            // Offset PPS
+            if (data.stats.gps.pps_offset !== null) {
+                const offsetMs = (data.stats.gps.pps_offset * 1000).toFixed(3);
+                document.getElementById('pps-offset').textContent = `${offsetMs} ms`;
+            } else {
+                document.getElementById('pps-offset').textContent = '--';
+            }
+
+            // USB RX/TX avec clignotement
+            const now = Date.now();
+            const rxLed = document.getElementById('rx-led');
+            const txLed = document.getElementById('tx-led');
+
+            // RX (GPS)
+            if (data.stats.gps.last_rx_ms < 100) {
+                rxLed.className = 'led active blink';
+                if (data.stats.gps.last_rx_ms !== lastRxTime) {
+                    setTimeout(() => rxLed.classList.remove('blink'), 200);
+                }
+                lastRxTime = data.stats.gps.last_rx_ms;
+                document.getElementById('rx-status').textContent = 'Actif';
+            } else {
+                rxLed.className = 'led inactive';
+                document.getElementById('rx-status').textContent = 'Inactif';
+            }
+
+            // TX (NTP)
+            if (data.stats.ntp.last_tx_ms < 100) {
+                txLed.className = 'led active blink';
+                if (data.stats.ntp.last_tx_ms !== lastTxTime) {
+                    setTimeout(() => txLed.classList.remove('blink'), 200);
+                }
+                lastTxTime = data.stats.ntp.last_tx_ms;
+                document.getElementById('tx-status').textContent = 'Actif';
+            } else {
+                txLed.className = 'led inactive';
+                document.getElementById('tx-status').textContent = 'Inactif';
+            }
+
+            // PPS
+            const ppsLed = document.getElementById('pps-led');
+            if (data.stats.gps.pps_active) {
+                ppsLed.className = 'led active';
+                document.getElementById('pps-status').textContent = 'Actif';
+            } else {
+                ppsLed.className = 'led inactive';
+                document.getElementById('pps-status').textContent = 'Inactif';
+            }
+
+            // Statistiques
+            document.getElementById('ntp-requests').textContent = data.stats.ntp.requests_total.toLocaleString('fr-FR');
+            document.getElementById('ntp-rate').textContent = data.stats.ntp.requests_per_second;
+            document.getElementById('nmea-count').textContent = data.stats.gps.nmea_sentences.toLocaleString('fr-FR');
+            document.getElementById('pps-count').textContent = data.stats.gps.pps_count.toLocaleString('fr-FR');
+
+            // Skyplot
+            drawSkyplot(data.stats.satellites || []);
+        }
+
+        function drawSkyplot(satellites) {
+            const canvas = document.getElementById('skyplot');
+            const ctx = canvas.getContext('2d');
+
+            // Adapter la résolution au device pixel ratio pour netteté
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const size = rect.width;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size / 2 - 40;
+
+            // Fond
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, size, size);
+
+            // Cercles de distance (90°, 60°, 30°, 0°)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+
+            for (let elev = 90; elev >= 0; elev -= 30) {
+                const r = radius * (1 - elev / 90);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Labels d'élévation
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(elev + '°', centerX, centerY - r - 5);
+            }
+
+            // Axes cardinaux
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+
+            // Nord-Sud
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius);
+            ctx.lineTo(centerX, centerY + radius);
+            ctx.stroke();
+
+            // Est-Ouest
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius, centerY);
+            ctx.lineTo(centerX + radius, centerY);
+            ctx.stroke();
+
+            // Labels cardinaux
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('N', centerX, centerY - radius - 10);
+            ctx.fillText('S', centerX, centerY + radius + 20);
+            ctx.fillText('E', centerX + radius + 15, centerY + 5);
+            ctx.fillText('O', centerX - radius - 15, centerY + 5);
+
+            // Dessiner les satellites
+            satellites.forEach(sat => {
+                // Convertir élévation en rayon (90° = centre, 0° = bord)
+                const elevRatio = 1 - (sat.elevation / 90);
+                const r = radius * elevRatio;
+
+                // Convertir azimut en angle (0° = Nord = haut, sens horaire)
+                const angle = (sat.azimuth - 90) * (Math.PI / 180);
+
+                // Position du satellite
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+
+                // Couleur selon SNR
+                let color;
+                if (sat.snr === 0) {
+                    color = 'rgba(200, 200, 200, 0.5)'; // Gris = pas de signal
+                } else if (sat.snr < 20) {
+                    color = 'rgba(255, 100, 100, 0.8)'; // Rouge = faible
+                } else if (sat.snr < 30) {
+                    color = 'rgba(255, 200, 50, 0.8)'; // Jaune = moyen
+                } else {
+                    color = 'rgba(50, 255, 100, 0.8)'; // Vert = bon
+                }
+
+                // Dessiner le cercle du satellite
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // PRN du satellite
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(sat.prn, x, y);
+
+                // Constellation (petite icône)
+                ctx.font = '8px monospace';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText(sat.constellation.substring(0, 1), x, y + 15);
+            });
+
+            // Nombre de satellites en vue
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${satellites.length} sat(s) en vue`, 10, 20);
+        }
+
+        // Connexion au démarrage
+        connectWebSocket();
+    </script>
+</body>
+</html>

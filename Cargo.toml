@@ -1,0 +1,46 @@
+[package]
+name = "pendulum"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name"]
+description = "Professional NTP server with GPS/GNSS support"
+
+[dependencies]
+# Configuration
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Platform-specific clock access
+libc = "0.2"
+
+# Signal handling
+ctrlc = "3.4"
+
+# GPS serial communication
+serialport = "4.8"
+chrono = "0.4"
+
+# Web server
+axum = { version = "0.7", features = ["ws", "macros"] }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.21"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+serde_json = "1.0"
+
+# Metrics (optional but recommended)
+# prometheus = { version = "0.13", optional = true }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
